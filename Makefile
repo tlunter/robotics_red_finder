@@ -1,24 +1,39 @@
 CC=gcc
-CFLAGS=-c -Wall $(shell pkg-config --cflags opencv)
+CFLAGS=-c -Wall $(shell pkg-config --cflags opencv) -I./includes
 LIBS=$(shell pkg-config --libs opencv)
+INCDIR=includes
+RED_FINDER_DIR=red_finder
+CAMERA_CAPTURE_DIR=camera_capture
 SRCDIR=src
 OBJDIR=obj
 BINDIR=build
-SOURCES=$(wildcard $(SRCDIR)/*.cpp)
-OBJECTS=$(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SOURCES))
-INCLUDES=$(wildcard $(SRCDIR)/*.h)
-EXECUTABLE=camera_capture
 
-all: out $(SOURCES) $(EXECUTABLE)
+RED_FINDER_SOURCES=$(wildcard $(SRCDIR)/$(RED_FINDER_DIR)/*.cpp)
+RED_FINDER_OBJECTS=$(patsubst $(SRCDIR)/$(RED_FINDER_DIR)/%.cpp, $(OBJDIR)/$(RED_FINDER_DIR)/%.o, $(RED_FINDER_SOURCES))
+RED_FINDER_INCLUDES=$(wildcard $(INCDIR)/$(RED_FINDER_DIR)/*.h)
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $(BINDIR)/$@ $(LIBS)
+CAMERA_CAPTURE_SOURCES=$(wildcard $(SRCDIR)/$(CAMERA_CAPTURE_DIR)/*.cpp)
+CAMERA_CAPTURE_OBJECTS=$(patsubst $(SRCDIR)/$(CAMERA_CAPTURE_DIR)/%.cpp, $(OBJDIR)/$(CAMERA_CAPTURE_DIR)/%.o, $(CAMERA_CAPTURE_SOURCES))
+CAMERA_CAPTURE_INCLUDES=$(wildcard $(INCDIR)/$(CAMERA_CAPTURE_DIR)/*.h)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(INCLUDES)
+EXECUTABLES=camera_capture red_finder
+
+all: out $(SOURCES) $(EXECUTABLES)
+
+camera_capture: $(CAMERA_CAPTURE_OBJECTS)
+	$(CC) $(CAMERA_CAPTURE_OBJECTS) -o $(BINDIR)/$@ $(LIBS)
+
+red_finder: $(RED_FINDER_OBJECTS)
+	$(CC) $(RED_FINDER_OBJECTS) -o $(BINDIR)/$@ $(LIBS)
+
+$(CAMERA_CAPTURE_OBJECTS): $(OBJDIR)/$(CAMERA_CAPTURE_DIR)/%.o: $(SRCDIR)/$(CAMERA_CAPTURE_DIR)/%.cpp $(CAMERA_CAPTURE_INCLUDES)
+	$(CC) $(CFLAGS) $< -o $@ $(LIBS)
+
+$(RED_FINDER_OBJECTS): $(OBJDIR)/$(RED_FINDER_DIR)/%.o: $(SRCDIR)/$(RED_FINDER_DIR)/%.cpp $(RED_FINDER_INCLUDES)
 	$(CC) $(CFLAGS) $< -o $@ $(LIBS)
 
 out:
-	mkdir -p $(SRCDIR) $(OBJDIR) $(BINDIR)
+	mkdir -p $(SRCDIR)/$(CAMERA_CAPTURE_DIR) $(SRCDIR)/$(RED_FINDER_DIR) $(OBJDIR)/$(CAMERA_CAPTURE_DIR) $(OBJDIR)/$(RED_FINDER_DIR) $(BINDIR)
 
 clean:
 	rm -rf $(OBJDIR)/*.o $(BINDIR)/$(EXECUTABLE)
