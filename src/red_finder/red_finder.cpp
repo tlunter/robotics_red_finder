@@ -22,4 +22,9 @@ void findRedColors(cv::Mat *src, cv::Mat *dest)
     cv::bitwise_or(*redA, *redB, *threshed);
 
     cv::GaussianBlur(*threshed, *dest, cv::Size(3, 3), 0);
+
+    hsv->release();
+    redA->release();
+    redB->release();
+    threshed->release();
 }
