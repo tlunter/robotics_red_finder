@@ -13,9 +13,10 @@ int main(int, char**)
     namedWindow("edges",1);
     Mat frame;
     Mat hsv;
-    Mat threshed;
     Mat redA;
     Mat redB;
+    Mat threshed;
+    Mat blurred;
     for(;;)
     {
         cap >> frame; // get a new frame from camera
@@ -23,18 +24,19 @@ int main(int, char**)
         Mat hsv(frame.size(), frame.depth());
         cvtColor(frame, hsv, CV_BGR2HSV_FULL);
 
-        int rotation = 128 - 255; // 255 = red
-        add(hsv, Scalar(rotation, 0, 0), hsv);
-
         cvtColor(frame, redA, CV_BGR2GRAY);
         cvtColor(frame, redB, CV_BGR2GRAY);
         cvtColor(frame, threshed, CV_BGR2GRAY);
+        cvtColor(frame, blurred, CV_BGR2GRAY);
 
-        inRange(hsv, Scalar(0, 80, 80), Scalar(20, 255, 255), redA);
-        inRange(hsv, Scalar(159, 80, 80), Scalar(179, 255, 255), redB);
+        inRange(hsv, Scalar(0, 100, 100), Scalar(20, 255, 255), redA);
+        inRange(hsv, Scalar(159, 100, 100), Scalar(179, 255, 255), redB);
 
         bitwise_or(redA, redB, threshed);
-        imshow("edges", threshed);
+
+        GaussianBlur(threshed, blurred, Size(3, 3), 0);
+
+        imshow("edges", blurred);
         if(waitKey(30) == 27) break;
     }
     // the camera will be deinitialized automatically in VideoCapture destructor
