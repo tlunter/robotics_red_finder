@@ -3,6 +3,7 @@
 #include <highgui.h>
 #include <sys/time.h>
 #include "red_finder/red_finder.h"
+#include "red_finder/uart_writer.h"
 
 int main(int argc, char **argv)
 {
@@ -20,6 +21,10 @@ int main(int argc, char **argv)
     long useconds;
     double duration;
     int loops = 0;
+
+    char direction;
+
+    int uart = open_uart();
 
     gettimeofday(&a, 0);
 
@@ -53,23 +58,37 @@ int main(int argc, char **argv)
             xmean /= points;
             ymean /= points;
         }
+        else
+        {
+            xmean = -1;
+        }
 
         std::cout << "X: " << xmean << " Y: " << ymean << std::endl;
 
         int midpoint = clear->cols / 2;
 
-        if (xmean < (midpoint - 20))
+        if (xmean < 0)
+        {
+            std::cout << "None" << std::endl;
+            direction = 0x40;
+        }
+        else if (xmean < (midpoint - 20))
         {
             std::cout << "Left" << std::endl;
+            direction = 0x41;
         }
         else if (xmean > (midpoint + 20))
         {
             std::cout << "Right" << std::endl;
+            direction = 0x43;
         }
         else
         {
             std::cout << "Center" << std::endl;
+            direction = 0x42;
         }
+
+        uart_write(uart, direction);
 
         gettimeofday(&b, 0);
 
@@ -83,8 +102,9 @@ int main(int argc, char **argv)
 
         frame->release();
         clear->release();
-        if(cv::waitKey(30) == 27) break;
     }
+
+    close(uart);
 
     return 0;
 }
