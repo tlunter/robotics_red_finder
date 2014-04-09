@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cv.h>
 #include <highgui.h>
+#include <sys/time.h>
 #include "red_finder/red_finder.h"
 
 int main(int argc, char **argv)
@@ -12,7 +13,15 @@ int main(int argc, char **argv)
     cv::Mat *frame;
     cv::Mat *clear;
 
-    cv::namedWindow("Red colors", 1);
+    timeval a;
+    timeval b;
+
+    long seconds;
+    long useconds;
+    double duration;
+    int loops = 0;
+
+    gettimeofday(&a, 0);
 
     for (;;)
     {
@@ -21,10 +30,6 @@ int main(int argc, char **argv)
 
         cap >> *frame;
         findRedColors(frame, clear);
-
-        cv::imshow("Red colors", *clear);
-
-        std::cout << "Rows: " << clear->rows << " Cols: " << clear->cols << std::endl;
 
         float xmean = 0;
         float ymean = 0;
@@ -65,6 +70,16 @@ int main(int argc, char **argv)
         {
             std::cout << "Center" << std::endl;
         }
+
+        gettimeofday(&b, 0);
+
+        seconds  = b.tv_sec  - a.tv_sec;
+        useconds = b.tv_usec - a.tv_usec;
+
+        loops += 1;
+        duration = seconds + useconds/1000000.0;
+
+        std::cout << loops/duration << " Loops/second" << std::endl << std::endl;
 
         frame->release();
         clear->release();
