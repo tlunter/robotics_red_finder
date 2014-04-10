@@ -6,7 +6,7 @@
 #include "red_finder/uart_writer.h"
 
 #define HISTORY_SIZE 3
-#define POINTS_NEEDED 150
+#define POINTS_NEEDED 50
 
 int main(int argc, char **argv)
 {
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
             xmean = -1;
         }
 
-        std::cout << "X: " << xmean << std::endl;
+        //std::cout << "X: " << xmean << std::endl;
 
         if (xmean < 0)
         {
@@ -98,9 +98,9 @@ int main(int argc, char **argv)
             char rightCount = 0;
             char maxCount = 0;
             char maxsDir = -1;
-            for (int i = 0; i < HISTORY_SIZE; i++)
+            for (unsigned int i = historyIndex - HISTORY_SIZE; i < historyIndex; i++)
             {
-                switch (history[i])
+                switch (history[i % HISTORY_SIZE])
                 {
                     case 0:
                         noneCount++;
@@ -139,28 +139,49 @@ int main(int argc, char **argv)
 
             if (maxsDir == 0)
             {
-                std::cout << "None" << std::endl;
+                //std::cout << "None" << //std::endl;
                 direction = 0x40;
             }
             else if (maxsDir == 1)
             {
-                std::cout << "Left" << std::endl;
+                //std::cout << "Left" << //std::endl;
                 direction = 0x41;
             }
             else if (maxsDir == 2)
             {
-                std::cout << "Center" << std::endl;
+                //std::cout << "Center" << //std::endl;
                 direction = 0x42;
             }
             else if (maxsDir == 3)
             {
-                std::cout << "Right" << std::endl;
+                //std::cout << "Right" << //std::endl;
                 direction = 0x43;
             }
 
-            if (maxsDir == lastAngleSent)
+            if (maxsDir != lastAngleSent)
+            {
                 if (!uart_write(uart, direction))
                     return -1;
+
+                lastAngleSent = maxsDir;
+
+                if (maxsDir == 0)
+                {
+                    std::cout << "None" << std::endl;
+                }
+                else if (maxsDir == 1)
+                {
+                    std::cout << "Left" << std::endl;
+                }
+                else if (maxsDir == 2)
+                {
+                    std::cout << "Center" << std::endl;
+                }
+                else if (maxsDir == 3)
+                {
+                    std::cout << "Right" << std::endl;
+                }
+            }
         }
 
         if (!uart_read(uart))

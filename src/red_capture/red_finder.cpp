@@ -16,8 +16,8 @@ void findRedColors(cv::Mat *src, cv::Mat *dest)
     cv::cvtColor(*src, *threshed, CV_BGR2GRAY);
     cv::cvtColor(*src, *dest, CV_BGR2GRAY);
 
-    cv::inRange(*hsv, cv::Scalar(0, 70, 70), cv::Scalar(10, 255, 255), *redA);
-    cv::inRange(*hsv, cv::Scalar(169, 70, 70), cv::Scalar(179, 255, 255), *redB);
+    cv::inRange(*hsv, cv::Scalar(0, 50, 50), cv::Scalar(10, 115, 115), *redA);
+    cv::inRange(*hsv, cv::Scalar(169, 50, 50), cv::Scalar(179, 115, 115), *redB);
 
     cv::bitwise_or(*redA, *redB, *threshed);
 
