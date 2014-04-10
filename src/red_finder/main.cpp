@@ -2,6 +2,7 @@
 #include <cv.h>
 #include <highgui.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include "red_finder/red_finder.h"
 #include "red_finder/uart_writer.h"
 
@@ -25,6 +26,8 @@ int main(int argc, char **argv)
     char direction;
 
     int uart = open_uart();
+    if (uart < 0)
+        return -1;
 
     gettimeofday(&a, 0);
 
@@ -88,7 +91,8 @@ int main(int argc, char **argv)
             direction = 0x42;
         }
 
-        uart_write(uart, direction);
+        if (!uart_write(uart, direction))
+            return -1;
 
         gettimeofday(&b, 0);
 
@@ -102,6 +106,8 @@ int main(int argc, char **argv)
 
         frame->release();
         clear->release();
+
+        usleep(50000);
     }
 
     close(uart);

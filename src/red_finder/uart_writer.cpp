@@ -23,7 +23,7 @@ int open_uart(void)
     //                                          immediately with a failure status if the output can't be written immediately.
     //
     //  O_NOCTTY - When set and path identifies a terminal device, open() shall not cause the terminal device to become the controlling terminal for the process.
-    uart0_filestream = open("/dev/ttyACM0", O_RDWR | O_NOCTTY);      //Open in non blocking read/write mode
+    uart0_filestream = open("/dev/ttyACM0", O_WRONLY | O_NOCTTY);      //Open in non blocking read/write mode
     if (uart0_filestream == -1)
     {
         //ERROR - CAN'T OPEN SERIAL PORT
@@ -52,16 +52,17 @@ int open_uart(void)
     return uart0_filestream;
 }
 
-void uart_write(int fd, char value)
+bool uart_write(int fd, char value)
 {
     if (fd != -1)
     {
         int count = write(fd, &value, 1);
         if (count < 0)
         {
-            std::cout << "UART TX Error" << std::endl;
+            return false;
         }
     }
+    return true;
 }
 
 void uart_read(int fd)
