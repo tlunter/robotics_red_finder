@@ -1,10 +1,12 @@
 #include <iostream>
 #include <cv.h>
 #include <highgui.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include "red_finder/red_finder.h"
 #include "red_finder/uart_writer.h"
+
+#define HISTORY_SIZE 3
+#define POINTS_NEEDED 150
 
 int main(int argc, char **argv)
 {
@@ -15,21 +17,27 @@ int main(int argc, char **argv)
     cv::Mat *frame;
     cv::Mat *clear;
 
-    timeval a;
-    timeval b;
-
-    long seconds;
-    long useconds;
-    double duration;
-    int loops = 0;
-
     char direction;
 
+    char history[HISTORY_SIZE] = {0};
+    unsigned int historyIndex = 0;
+
+    // Initialize the midpoint of the frame
+    frame = new cv::Mat();
+
+    cap >> *frame;
+    int midpoint = frame->cols / 2;
+    frame->release();
+
+    // Start UART connection
     int uart = open_uart();
     if (uart < 0)
         return -1;
 
-    gettimeofday(&a, 0);
+    char lastAngleSent = -1;
+
+    // Let Arduino reset before spamming serial connection
+    sleep(5);
 
     for (;;)
     {
@@ -40,7 +48,6 @@ int main(int argc, char **argv)
         findRedColors(frame, clear);
 
         float xmean = 0;
-        float ymean = 0;
         int points = 0;
 
         for (int i = 0; i < clear->rows; i++)
@@ -50,64 +57,119 @@ int main(int argc, char **argv)
                 if (clear->at<uchar>(i,j) > 127)
                 {
                     xmean += j;
-                    ymean += i;
                     points += 1;
                 }
             }
         }
 
-        if (points > 0)
+        if (points > POINTS_NEEDED)
         {
             xmean /= points;
-            ymean /= points;
         }
         else
         {
             xmean = -1;
         }
 
-        std::cout << "X: " << xmean << " Y: " << ymean << std::endl;
-
-        int midpoint = clear->cols / 2;
+        std::cout << "X: " << xmean << std::endl;
 
         if (xmean < 0)
         {
-            std::cout << "None" << std::endl;
-            direction = 0x40;
+            history[historyIndex++ % HISTORY_SIZE] = 0;
         }
-        else if (xmean < (midpoint - 20))
+        else if (xmean < (midpoint - 30))
         {
-            std::cout << "Left" << std::endl;
-            direction = 0x41;
+            history[historyIndex++ % HISTORY_SIZE] = 1;
         }
-        else if (xmean > (midpoint + 20))
+        else if (xmean > (midpoint + 30))
         {
-            std::cout << "Right" << std::endl;
-            direction = 0x43;
+            history[historyIndex++ % HISTORY_SIZE] = 3;
         }
         else
         {
-            std::cout << "Center" << std::endl;
-            direction = 0x42;
+            history[historyIndex++ % HISTORY_SIZE] = 2;
         }
 
-        if (!uart_write(uart, direction))
+        if (historyIndex > HISTORY_SIZE)
+        {
+            char noneCount = 0;
+            char leftCount = 0;
+            char centerCount = 0;
+            char rightCount = 0;
+            char maxCount = 0;
+            char maxsDir = -1;
+            for (int i = 0; i < HISTORY_SIZE; i++)
+            {
+                switch (history[i])
+                {
+                    case 0:
+                        noneCount++;
+                        if (maxCount <= noneCount)
+                        {
+                            maxCount = noneCount;
+                            maxsDir = 0;
+                        }
+                        break;
+                    case 1:
+                        leftCount++;
+                        if (maxCount <= leftCount)
+                        {
+                            maxCount = leftCount;
+                            maxsDir = 1;
+                        }
+                        break;
+                    case 2:
+                        centerCount++;
+                        if (maxCount <= centerCount)
+                        {
+                            maxCount = centerCount;
+                            maxsDir = 2;
+                        }
+                        break;
+                    case 3:
+                        rightCount++;
+                        if (maxCount <= rightCount)
+                        {
+                            maxCount = rightCount;
+                            maxsDir = 3;
+                        }
+                        break;
+                }
+            }
+
+            if (maxsDir == 0)
+            {
+                std::cout << "None" << std::endl;
+                direction = 0x40;
+            }
+            else if (maxsDir == 1)
+            {
+                std::cout << "Left" << std::endl;
+                direction = 0x41;
+            }
+            else if (maxsDir == 2)
+            {
+                std::cout << "Center" << std::endl;
+                direction = 0x42;
+            }
+            else if (maxsDir == 3)
+            {
+                std::cout << "Right" << std::endl;
+                direction = 0x43;
+            }
+
+            if (maxsDir == lastAngleSent)
+                if (!uart_write(uart, direction))
+                    return -1;
+        }
+
+        if (!uart_read(uart))
             return -1;
-
-        gettimeofday(&b, 0);
-
-        seconds  = b.tv_sec  - a.tv_sec;
-        useconds = b.tv_usec - a.tv_usec;
-
-        loops += 1;
-        duration = seconds + useconds/1000000.0;
-
-        std::cout << loops/duration << " Loops/second" << std::endl << std::endl;
 
         frame->release();
         clear->release();
 
-        usleep(50000);
+        //usleep(25000);
     }
 
     close(uart);
