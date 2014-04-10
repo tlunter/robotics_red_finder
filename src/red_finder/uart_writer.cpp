@@ -23,7 +23,7 @@ int open_uart(void)
     //                                          immediately with a failure status if the output can't be written immediately.
     //
     //  O_NOCTTY - When set and path identifies a terminal device, open() shall not cause the terminal device to become the controlling terminal for the process.
-    uart0_filestream = open("/dev/ttyACM0", O_WRONLY | O_NOCTTY);      //Open in non blocking read/write mode
+    uart0_filestream = open("/dev/ttyACM0", O_RDWR | O_NOCTTY);      //Open in non blocking read/write mode
     if (uart0_filestream == -1)
     {
         //ERROR - CAN'T OPEN SERIAL PORT
@@ -42,12 +42,37 @@ int open_uart(void)
     //  PARODD - Odd parity (else even)
     struct termios options;
     tcgetattr(uart0_filestream, &options);
-    options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;     //<Set baud rate
-    options.c_iflag = IGNPAR;
-    options.c_oflag = 0;
-    options.c_lflag = 0;
-    tcflush(uart0_filestream, TCIFLUSH);
+    cfsetispeed(&options, B9600);
+    cfsetospeed(&options, B9600);
+
+    // 8N1
+    options.c_cflag &= ~PARENB;
+    options.c_cflag &= ~CSTOPB;
+    options.c_cflag &= ~CSIZE;
+    options.c_cflag |= CS8;
+
+    // no flow control
+    options.c_cflag &= ~CRTSCTS;
+
+    options.c_cflag |= CREAD | CLOCAL;  // turn on READ & ignore ctrl lines
+    options.c_iflag &= ~(IXON | IXOFF | IXANY); // turn off s/w flow ctrl
+
+    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // make raw
+    options.c_oflag &= ~OPOST; // make raw
+
+    options.c_cc[VMIN]  = 0;
+    options.c_cc[VTIME] = 0;
+
+    //options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;     //<Set baud rate
+    //options.c_iflag = IGNPAR;
+    //options.c_oflag = 0;
+    //options.c_lflag = 0;
     tcsetattr(uart0_filestream, TCSANOW, &options);
+    if(tcsetattr(uart0_filestream, TCSAFLUSH, &options) < 0) {
+        std::cout << "Couldn't set UART attributes" << std::endl;
+        return -1;
+    }
+
 
     return uart0_filestream;
 }
@@ -65,17 +90,18 @@ bool uart_write(int fd, char value)
     return true;
 }
 
-void uart_read(int fd)
+bool uart_read(int fd)
 {
     unsigned char rx_buffer[256];
     int rx_length = read(fd, (void*)rx_buffer, 255);
     if (rx_length < 0)
     {
-        std::cout << "UART RX Error" << std::endl;
+        return false;
     }
     else if (rx_length > 0)
     {
-        rx_buffer[rx_length] = '\0';
-        std::cout << rx_buffer << std::endl;
+        //rx_buffer[rx_length] = '\0';
+        //std::cout << rx_buffer << std::endl;
     }
+    return true;
 }
