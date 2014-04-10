@@ -25,13 +25,13 @@ EXECUTABLES=camera_capture red_capture red_finder
 
 all: out $(SOURCES) $(EXECUTABLES)
 
-red_capture: $(RED_CAPTURE_OBJECTS)
+red_capture: out $(RED_CAPTURE_OBJECTS)
 	$(CC) $(RED_CAPTURE_OBJECTS) -o $(BINDIR)/$@ $(LIBS)
 
-camera_capture: $(CAMERA_CAPTURE_OBJECTS)
+camera_capture: out $(CAMERA_CAPTURE_OBJECTS)
 	$(CC) $(CAMERA_CAPTURE_OBJECTS) -o $(BINDIR)/$@ $(LIBS)
 
-red_finder: $(RED_FINDER_OBJECTS)
+red_finder: out $(RED_FINDER_OBJECTS)
 	$(CC) $(RED_FINDER_OBJECTS) -o $(BINDIR)/$@ $(LIBS)
 
 $(CAMERA_CAPTURE_OBJECTS): $(OBJDIR)/$(CAMERA_CAPTURE_DIR)/%.o: $(SRCDIR)/$(CAMERA_CAPTURE_DIR)/%.cpp $(CAMERA_CAPTURE_INCLUDES)
@@ -47,4 +47,4 @@ out:
 	mkdir -p $(SRCDIR)/$(CAMERA_CAPTURE_DIR) $(SRCDIR)/$(RED_CAPTURE_DIR) $(SRCDIR)/$(RED_FINDER_DIR) $(OBJDIR)/$(CAMERA_CAPTURE_DIR) $(OBJDIR)/$(RED_CAPTURE_DIR) $(OBJDIR)/$(RED_FINDER_DIR) $(BINDIR)
 
 clean:
-	rm -rf $(OBJDIR)/*.o $(BINDIR)/$(EXECUTABLE)
+	rm -rf $(OBJDIR)/**/*.o $(BINDIR)/**/*
